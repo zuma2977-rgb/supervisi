@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Supervisi Kepala Sekolah</title>
+<style>
+:root{--bg:#f3f6f4;--card:#fff;--ink:#17302a;--mut:#5f7770;--line:#d5e0db;--pri:#0f6b57;--pri2:#e3f1ec;--warn:#b5651d;--bad:#a8322d}
+@media(prefers-color-scheme:dark){:root{--bg:#101a17;--card:#17251f;--ink:#e6f0ec;--mut:#9bb3aa;--line:#2b3f37;--pri:#4fc3a1;--pri2:#1d3a31;--warn:#e0a060;--bad:#e8837e}}
+*{box-sizing:border-box}
+body{margin:0;font:15px/1.5 "Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--ink)}
+header{background:var(--pri);color:#fff;padding:14px 18px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+@media(prefers-color-scheme:dark){header{color:#06241b}}
+h1{font:700 18px/1.2 Georgia,serif;margin:0}
+nav{display:flex;gap:4px;overflow-x:auto;background:var(--card);border-bottom:1px solid var(--line);padding:0 10px}
+nav button{border:0;background:none;color:var(--mut);padding:12px 14px;font:inherit;cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap}
+nav button.on{color:var(--pri);border-color:var(--pri);font-weight:600}
+main{max-width:980px;margin:0 auto;padding:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:16px;margin-bottom:14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.stat b{display:block;font:700 28px Georgia,serif;color:var(--pri)}
+.stat span{color:var(--mut);font-size:13px}
+label{display:block;font-size:13px;color:var(--mut);margin-bottom:3px}
+input,select,textarea{width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font:inherit}
+.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:12px}
+.item{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line)}
+.item .t{flex:1}
+.sc{display:flex;gap:4px}
+.sc label{margin:0;cursor:pointer}
+.sc input{display:none}
+.sc span{display:block;width:36px;text-align:center;padding:6px 0;border:1px solid var(--line);border-radius:6px;color:var(--ink)}
+.sc input:checked+span{background:var(--pri);color:#fff;border-color:var(--pri)}
+.sc input:focus-visible+span{outline:2px solid var(--ink)}
+@media(prefers-color-scheme:dark){.sc input:checked+span{color:#06241b}}
+.btn{background:var(--pri);color:#fff;border:0;border-radius:6px;padding:9px 16px;font:inherit;font-weight:600;cursor:pointer}
+@media(prefers-color-scheme:dark){.btn{color:#06241b}}
+.btn.alt{background:var(--pri2);color:var(--pri)}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:8px 6px;border-top:1px solid var(--line)}
+th{color:var(--mut);font-weight:600}
+.tw{overflow-x:auto}
+.tag{padding:2px 8px;border-radius:10px;background:var(--pri2);color:var(--pri);font-size:12px;font-weight:600}
+.tag.w{color:var(--warn)}.tag.b{color:var(--bad)}
+.bar{height:8px;background:var(--pri2);border-radius:4px;overflow:hidden}.bar i{display:block;height:100%;background:var(--pri)}
+#msg{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:6px;display:none}
+.hide{display:none}
+@media print{header,nav,.np{display:none}body{background:#fff;color:#000}}
+</style>
+</head>
+<body>
+<header><h1 id="sch">Supervisi Kepala Sekolah</h1><button class="btn alt np" onclick="cfg()">Pengaturan</button></header>
+<nav id="nav"></nav>
+<main id="app"></main>
+<div id="msg" role="status"></div>
+<script>
+const FORMS={
+ akademik:{judul:"Supervisi Akademik",sheet:"Akademik",skala:"1 = kurang, 2 = cukup, 3 = baik, 4 = sangat baik",items:[
+  "Kesesuaian pembelajaran dengan modul ajar/RPP","Kegiatan pembuka (apersepsi, tujuan pembelajaran)","Penguasaan materi pelajaran","Ketepatan metode dan model pembelajaran","Penggunaan media dan sumber belajar","Keterlibatan dan interaksi aktif siswa","Penilaian dan umpan balik selama pembelajaran","Pengelolaan waktu","Kegiatan penutup dan refleksi"]},
+ administrasi:{judul:"Supervisi Administrasi",sheet:"Administrasi",skala:"0 = tidak ada, 1 = sebagian, 2 = lengkap, 3 = lengkap dan berkualitas",max:3,items:[
+  "CP/ATP dan alur tujuan pembelajaran","Program tahunan dan semester","Modul ajar/RPP","Jadwal mengajar","Daftar hadir siswa","Daftar nilai","Jurnal mengajar","Kisi-kisi dan bank soal","Analisis hasil asesmen","Program remedial dan pengayaan"]},
+ lingkungan:{judul:"Lingkungan Belajar",sheet:"Lingkungan",skala:"1 = kurang, 2 = cukup, 3 = baik, 4 = sangat baik",items:[
+  "Kebersihan dan kerapian kelas","Penataan tempat duduk","Pencahayaan dan ventilasi","Alat peraga dan media tersedia","Pajangan hasil karya dan sudut baca","Tata tertib kelas disepakati dan terlihat","Iklim emosional positif (guru dan siswa saling menghargai)","Keamanan dan kenyamanan siswa"]}
+};
+const TABS=[["dash","Dashboard"],["akademik","Akademik"],["administrasi","Administrasi"],["lingkungan","Lingkungan Belajar"],["guru","Data Guru"],["rekap","Rekap"]];
+let S={guru:[],akademik:[],administrasi:[],lingkungan:[]},tab="dash";
+const L=k=>{try{return localStorage.getItem(k)}catch(e){return null}};
+const W=(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}};
+const url=()=>L("url")||"";
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function msg(t){const m=document.getElementById("msg");m.textContent=t;m.style.display="block";setTimeout(()=>m.style.display="none",2600)}
+function cfg(){
+ const u=prompt("https://script.google.com/macros/s/AKfycbyEaqtDIiIoxbtVyRU1f56ooywHTfXjDiuYOrjNlIVFRT9QIA-SZr5HyMMpYXeCzin27w/exec",url());
+ if(u===null)return;W("url",u.trim());
+ const n=prompt("Nama sekolah:",L("sekolah")||"");if(n!==null)W("sekolah",n.trim());
+ load()}
+async function load(){
+ document.getElementById("sch").textContent=L("sekolah")||"Supervisi Kepala Sekolah";
+ if(url()){try{const r=await fetch(url());S=await r.json()}catch(e){msg("Gagal memuat dari Google Sheets. Periksa URL.")}}
+ else{try{S=JSON.parse(L("data"))||S}catch(e){}}
+ S.guru=S.guru||[];render()}
+async function simpan(sheet,key,row){
+ if(url()){try{await fetch(url(),{method:"POST",body:JSON.stringify({sheet,row})});}catch(e){return msg("Gagal menyimpan.")}}
+ S[key].push(row);if(!url())W("data",JSON.stringify(S));msg("Tersimpan");render()}
+function predikat(p){return p>=85?["Sangat baik",""]:p>=70?["Baik",""]:p>=55?["Cukup","w"]:["Perlu pembinaan","b"]}
+function tag(p){const[t,c]=predikat(p);return `<span class="tag ${c}">${t}</span>`}
+function nav(){document.getElementById("nav").innerHTML=TABS.map(([k,n])=>`<button class="${k==tab?"on":""}" onclick="tab='${k}';render()">${n}</button>`).join("")}
+function render(){nav();const a=document.getElementById("app");
+ a.innerHTML=tab=="dash"?dash():tab=="guru"?guru():tab=="rekap"?rekap():form(tab)}
+function avg(k){const r=S[k]||[];return r.length?Math.round(r.reduce((s,x)=>s+ +x.persen,0)/r.length):0}
+function dash(){
+ const rows=Object.keys(FORMS).flatMap(k=>(S[k]||[]).map(r=>({...r,jenis:FORMS[k].judul}))).sort((a,b)=>b.tanggal.localeCompare(a.tanggal)).slice(0,8);
+ return `<div class="grid">
+ <div class="card stat"><b>${S.guru.length}</b><span>Guru terdaftar</span></div>
+ ${Object.keys(FORMS).map(k=>`<div class="card stat"><b>${avg(k)}%</b><span>${FORMS[k].judul} (${(S[k]||[]).length} supervisi)</span><div class="bar"><i style="width:${avg(k)}%"></i></div></div>`).join("")}</div>
+ <div class="card"><h3 style="margin-top:0">Supervisi terbaru</h3>${rows.length?`<div class="tw"><table><tr><th>Tanggal</th><th>Guru</th><th>Jenis</th><th>Nilai</th></tr>${rows.map(r=>`<tr><td>${esc(r.tanggal)}</td><td>${esc(r.guru)}</td><td>${r.jenis}</td><td>${r.persen}% ${tag(+r.persen)}</td></tr>`).join("")}</table></div>`:"<p>Belum ada data. Mulai dari menu Data Guru, lalu isi satu supervisi.</p>"}</div>
+ <p style="color:var(--mut);font-size:13px">${url()?"Terhubung ke Google Sheets.":"Mode lokal: data tersimpan di browser ini saja. Klik Pengaturan untuk menghubungkan Google Sheets."}</p>`}
+function guru(){
+ return `<div class="card"><h3 style="margin-top:0">Tambah guru</h3><div class="row"><div><label>Nama</label><input id="gn"></div><div><label>NIP/NUPTK</label><input id="gi"></div><div><label>Mata pelajaran</label><input id="gm"></div></div><button class="btn" onclick="addG()">Simpan guru</button></div>
+ <div class="card tw"><table><tr><th>Nama</th><th>NIP/NUPTK</th><th>Mapel</th></tr>${S.guru.map(g=>`<tr><td>${esc(g.nama)}</td><td>${esc(g.nip)}</td><td>${esc(g.mapel)}</td></tr>`).join("")||"<tr><td colspan=3>Belum ada guru.</td></tr>"}</table></div>`}
+function addG(){const nama=gn.value.trim();if(!nama)return msg("Isi nama guru.");simpan("Guru","guru",{nama,nip:gi.value.trim(),mapel:gm.value.trim()})}
+function form(k){
+ const f=FORMS[k],mx=f.max||4,mn=f.max?0:1;
+ if(!S.guru.length)return `<div class="card">Tambahkan guru dulu di menu Data Guru.</div>`;
+ return `<div class="card"><h3 style="margin-top:0">${f.judul}</h3>
+ <div class="row"><div><label>Tanggal</label><input type="date" id="tg" value="${new Date().toISOString().slice(0,10)}"></div>
+ <div><label>Guru</label><select id="gr">${S.guru.map(g=>`<option>${esc(g.nama)}</option>`).join("")}</select></div>
+ <div><label>Kelas</label><input id="kl" placeholder="mis. VII-A"></div></div>
+ <p style="color:var(--mut);font-size:13px">${f.skala}</p>
+ ${f.items.map((t,i)=>`<div class="item"><div class="t">${t}</div><div class="sc">${Array.from({length:mx-mn+1},(_,j)=>mn+j).map(v=>`<label><input type="radio" name="i${i}" value="${v}"><span>${v}</span></label>`).join("")}</div></div>`).join("")}
+ <div class="row" style="margin-top:12px"><div><label>Temuan dan catatan</label><textarea id="ct" rows="3"></textarea></div><div><label>Tindak lanjut / pembinaan</label><textarea id="tl" rows="3"></textarea></div></div>
+ <button class="btn" onclick="kirim('${k}')">Simpan supervisi</button></div>`}
+function kirim(k){
+ const f=FORMS[k],mx=f.max||4,mn=f.max?0:1;let tot=0;const sk={};
+ for(let i=0;i<f.items.length;i++){const c=document.querySelector(`input[name=i${i}]:checked`);if(!c)return msg("Lengkapi semua butir nilai.");tot+=+c.value;sk[i]=c.value}
+ const persen=Math.round(tot/(f.items.length*mx)*100);
+ simpan(f.sheet,k,{tanggal:tg.value,guru:gr.value,kelas:kl.value,skor:Object.values(sk).join(","),total:tot,persen,catatan:ct.value,tindak_lanjut:tl.value})}
+function rekap(){
+ return `<div class="card np"><button class="btn" onclick="print()">Cetak / simpan PDF</button></div>`+
+ S.guru.map(g=>{const c=k=>{const r=(S[k]||[]).filter(x=>x.guru==g.nama);return r.length?Math.round(r.reduce((s,x)=>s+ +x.persen,0)/r.length):null};
+ const v=Object.keys(FORMS).map(c),ok=v.filter(x=>x!==null),m=ok.length?Math.round(ok.reduce((a,b)=>a+b,0)/ok.length):null;
+ return `<div class="card"><b>${esc(g.nama)}</b> <span style="color:var(--mut)">${esc(g.mapel)}</span>
+ <div class="tw"><table><tr>${Object.keys(FORMS).map(k=>`<th>${FORMS[k].judul}</th>`).join("")}<th>Rata-rata</th></tr><tr>${v.map(x=>`<td>${x===null?"belum":x+"%"}</td>`).join("")}<td>${m===null?"-":m+"% "+tag(m)}</td></tr></table></div></div>`}).join("")||`<div class="card">Belum ada data guru.</div>`}
+load();
+</script>
+</body>
+</html>
